@@ -11,38 +11,39 @@
      - conda install matplotlib
      - conda install flask   -- recomended, but not required
      - conda install jupyter -- recomended, but not required
+ 
+ The water quality probes are from Atlas Scientific. Refer to the manuals for more info of each parameter 
+ https://www.atlas-scientific.com/product_pages/kits/env-sds-kit.html
+   pH:
+     Range: .001 − 14.000
+     Resolution: .001
+     Accuracy: +/– 0.002
+   ORP:
+     Range: -1019.9mV − 1019.9mV
+     Resolution: ???
+     Accuracy: +/– 1mV
+   Dissolved Oxigen:
+     Range: 0.01 − 100+ mg/L
+     Resolution: ???
+     Accuracy: +/– 0.05 mg/L
+   Conductivity:
+     Range: 0.07 − 500,000+ μS/cm
+     Resolution: ???
+     Accuracy: +/– 2% 
+   Temperature
+     Range:  -126.000 °C − 1254 °C
+     Resolution: 0.001
+     Accuracy:	+/– (0.10 C + 0.0017 x C)           
 
  TODO: geopandas/shapely and rosbag_pandas are not reeealy necessary. it might be interesting to have a rosbag2pandas.py script
 """
 
-# GeoPandas Heatmaps
-# https://nbviewer.jupyter.org/gist/perrygeo/c426355e40037c452434
-# download OSM maps
-# https://www.openstreetmap.org/export#map=19/-32.07384/-52.16541
-#import geopandas as gpd
 import os
 import sys
 import pandas
 import numpy as np
 import folium
 import branca.colormap as cm
-
-#from flask import Flask
-
-#from scipy import ndimage
-
-#import matplotlib.pylab as pylab
-#import matplotlib.pyplot as plt
-#from mpl_toolkits.basemap import Basemap
-#import gmplot 
-
-# Create a dataframe with fake data
-"""
-df = pd.DataFrame({
-    'longitude':   np.random.normal(11.84,     0.15,     1000),
-    'latitude':    np.random.normal(55.55,     0.15,     1000),
-    'temperature': np.random.normal(temp_mean, temp_std, 1000)})
-"""
 
 # exemplo bom c pandas
 # https://github.com/python-visualization/folium/issues/958
@@ -56,7 +57,6 @@ df = pd.DataFrame({
 # http://cican17.com/data-visualization-with-python/
 # folium lines
 # https://deparkes.co.uk/2016/06/03/plot-lines-in-folium/
-
 
 #load data file 
 rosbag_filename = './data/furg-lake.bag'
@@ -81,13 +81,17 @@ geomap = folium.Map([df[['Latitude']].mean(), df[['Longitude']].mean()], zoom_st
 fg = []
 cmap = []
 cnt = 0
+colormap_caption = ['Condutivity (μS/cm)', 'DissolvedOxygen (mg/L)', 'RedoxPotential (mV)', 'Temperature (C)', 'pH']
 
 #for each layer
 for data_var in expected_columns:
 	#data_var = 'Temperature' #what variable will determine the color
 	cmap.append( cm.LinearColormap(['blue', 'red'],
+							 # this option is good to remove outliers. It removes 5% lowest and the 5% highest values
 	                         vmin=df[[data_var]].quantile(0.05)[0], vmax=df[[data_var]].quantile(0.95)[0],
-	                         caption = data_var)
+	                         # this option keep all data, including possible outliers
+	                         #vmin=df[[data_var]].min()[0], vmax=df[[data_var]].max()[0],
+	                         caption = colormap_caption[cnt])
 				)
 
 	# creating the data layers
@@ -120,7 +124,8 @@ df.apply(plotDot, axis = 1)
 geomap.fit_bounds(geomap.get_bounds())
 
 # save the map
-geomap.save(os.path.join('results', 'folium-furg_0.html'))
+#geomap.save(os.path.join('results', rosbag_filename+'-folium.html'))
+geomap.save(rosbag_filename+'-folium.html')
 
 # present basic statistics for all expected data
 df_temp = pandas.DataFrame(columns=expected_columns)
