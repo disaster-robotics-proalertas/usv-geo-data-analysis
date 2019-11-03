@@ -124,14 +124,17 @@ geomap = folium.Map([dfLat.mean(), dfLong.mean()], zoom_start=18)
 # creating the data layers
 # https://github.com/python-visualization/folium/blob/master/examples/FeatureGroup.ipynb
 #fg = folium.FeatureGroup
-fg = folium.FeatureGroup(name='Some icons')
-folium.Marker(location=[dfLat.mean(), dfLong.mean()],
-       popup='Mt. Hood Meadows').add_to(fg)
+fgTemp = folium.FeatureGroup(name='Temperature')
+fgpH = folium.FeatureGroup(name='pH')
 
 folium.Marker(location=[dfLat.mean(), dfLong.mean()],
-       popup='Timberline Lodge').add_to(fg)
+       popup='Mt. Hood Meadows').add_to(fgTemp)
 
-fg.add_to(geomap)
+folium.Marker(location=[dfLat.mean(), dfLong.mean()],
+       popup='Timberline Lodge').add_to(fgpH)
+
+fgTemp.add_to(geomap)
+fgpH.add_to(geomap)
 folium.LayerControl().add_to(geomap)
 '''
 g1 = folium.plugins.FeatureGroupSubGroup(fg, 'Temperature')
