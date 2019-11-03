@@ -21,6 +21,7 @@
 # https://www.openstreetmap.org/export#map=19/-32.07384/-52.16541
 #import geopandas as gpd
 import os
+import sys
 import pandas
 import numpy as np
 import folium
@@ -57,26 +58,18 @@ df = pd.DataFrame({
 # https://deparkes.co.uk/2016/06/03/plot-lines-in-folium/
 
 
+#load data file 
 rosbag_filename = './data/furg-lake.bag'
-
 df = pandas.read_pickle(rosbag_filename+"-df.pkl")
 
-df = df[['Latitude', 'Longitude','Temperature', 'pH']]
-dflist = df.values.tolist()
-#dflist = df["Latitude"].tolist()
-'''
-dfLat = df[['Latitude']]
-dflistLat = df["Latitude"].tolist()
+# check if the expected data is in the file
+expected_columns = ['Latitude', 'Longitude', 'Altitude', 'Condutivity', 'DissolvedOxygen', 'RedoxPotential', 'Temperature', 'pH']
+for col in expected_columns:
+	if col not in df.columns:
+		print ("ERROR: column " + col + " not found in " + rosbag_filename +"-df.pkl")
+		sys.exit(1)
 
-dfLong = df[['Longitude']]
-dflistLong = df['Longitude'].tolist()
-
-dfTemp = df[['Temperature']]
-dflistTemp = df['Temperature'].tolist()
-
-dfpH = df[['pH']]
-dflistpH = df['pH'].tolist()
-'''
+df = df[['Latitude', 'Longitude','Condutivity', 'DissolvedOxygen', 'RedoxPotential', 'Temperature', 'pH']]
 
 color_var = 'Temperature' #what variable will determine the color
 cmap_Temp = cm.LinearColormap(['blue', 'red'],
@@ -97,14 +90,11 @@ geomap = folium.Map([df[['Latitude']].mean(), df[['Latitude']].mean()], zoom_sta
 fgTemp = folium.FeatureGroup(name='Temperature')
 fgpH = folium.FeatureGroup(name='pH')
 
-folium.Marker(location=[df[['Latitude']].mean(), df[['Longitude']].mean()],
-       popup='Temp').add_to(fgTemp)
+#folium.Marker(location=[df[['Latitude']].mean(), df[['Longitude']].mean()],
+#       popup='Temp').add_to(fgTemp)
 
-folium.Marker(location=[df[['Latitude']].mean(), df[['Longitude']].mean()],
-       popup='pH').add_to(fgpH)
-
-#cmap_pH.add_to(fgpH)
-#cmap_Temp.add_to(fgTemp)
+#folium.Marker(location=[df[['Latitude']].mean(), df[['Longitude']].mean()],
+#       popup='pH').add_to(fgpH)
 
 fgTemp.add_to(geomap)
 fgpH.add_to(geomap)
@@ -149,23 +139,6 @@ def plotDot(point):
                         popup= "%.2f" % point['pH'],
                         weight=0).add_to(fgpH)
 
-'''
-for lat, lon, temp in zip(dflistLat,dflistLong,dflistTemp):
-    print (lat, lon, temp[0])
-    print (cmap(27))
-    #print (cmap(temp_data[color_var]))
-    #print (temp_data_lists[point])
-    #folium.Marker(locationlist[point], popup=temp_data_lists[point]).add_to(geomap)
-    #folium.CircleMarker(locationlist[point], 
-    #   radius=1, #weight=0,#remove outline
-    #   fill_color=cmap(temp_data[color_var]),
-    #   popup=temp_data_lists[point]).add_to(geomap)
-    folium.CircleMarker(location=[lat[0], lon[0]],
-                        fill_color=cmap(temp[0]),
-                        radius=2,
-                        weight=0).add_to(geomap)
-    #folium.Marker(locationlist[point]).add_to(geomap)
-'''
 
 df.apply(plotDot, axis = 1)
 
