@@ -128,8 +128,6 @@ df_temp = pandas.DataFrame(columns=expected_columns)
 for data_var in expected_columns:
 	# get basic statistics
 	temp_ser = df[data_var].describe()
-	# include some additiona statistics
-	#temp_ser.append(pandas.Series())
 	# set the entire column at once
 	df_temp[data_var] = temp_ser
 
