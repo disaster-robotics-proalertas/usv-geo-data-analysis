@@ -164,6 +164,7 @@ def plotDot(point):
     folium.CircleMarker(location=[point.Latitude, point.Longitude],
                         fill_color=cmap(point[color_var]),
                         radius=2,
+                        popup= "%.2f" % point[color_var],
                         weight=0).add_to(geomap)
 '''
 for lat, lon, temp in zip(dflistLat,dflistLong,dflistTemp):
