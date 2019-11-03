@@ -111,38 +111,7 @@ def plotDot(point):
                     popup= "%.2f" % point[data_var],
                     weight=0).add_to(fg[cnt])
 	    cnt =  cnt +1
-'''
-    #add points to the Condutivity Layer
-    folium.CircleMarker(location=[point.Latitude, point.Longitude],
-                        fill_color=cmap[0](point['Condutivity']),
-                        radius=2,
-                        popup= "%.2f" % point['Condutivity'],
-                        weight=0).add_to(fg[0])
-    #add points to the DissolvedOxygen Layer
-    folium.CircleMarker(location=[point.Latitude, point.Longitude],
-                        fill_color=cmap[1](point['DissolvedOxygen']),
-                        radius=2,
-                        popup= "%.2f" % point['DissolvedOxygen'],
-                        weight=0).add_to(fg[1])
-    #add points to the RedoxPotential Layer
-    folium.CircleMarker(location=[point.Latitude, point.Longitude],
-                        fill_color=cmap[2](point['RedoxPotential']),
-                        radius=2,
-                        popup= "%.2f" % point['RedoxPotential'],
-                        weight=0).add_to(fg[2])                            
-    #add points to the Temperature Layer
-    folium.CircleMarker(location=[point.Latitude, point.Longitude],
-                        fill_color=cmap[3](point['Temperature']),
-                        radius=2,
-                        popup= "%.2f" % point['Temperature'],
-                        weight=0).add_to(fg[3])
-    # add points to the pH Layer
-    folium.CircleMarker(location=[point.Latitude, point.Longitude],
-                        fill_color=cmap[4](point['pH']),
-                        radius=2,
-                        popup= "%.2f" % point['pH'],
-                        weight=0).add_to(fg[4])
-'''
+
 
 df.apply(plotDot, axis = 1)
 
@@ -150,7 +119,21 @@ df.apply(plotDot, axis = 1)
 #Set the zoom to the maximum possible
 geomap.fit_bounds(geomap.get_bounds())
 
+# save the map
 geomap.save(os.path.join('results', 'folium-furg_0.html'))
+
+# present basic statistics for all expected data
+df_temp = pandas.DataFrame(columns=expected_columns)
+
+for data_var in expected_columns:
+	# get basic statistics
+	temp_ser = df[data_var].describe()
+	# include some additiona statistics
+	#temp_ser.append(pandas.Series())
+	# set the entire column at once
+	df_temp[data_var] = temp_ser
+
+print (df_temp)
 
 geomap
 
