@@ -1,15 +1,16 @@
+
 """
  DESCRIPTION: takes Pandas Pickle files from rosbag2geopandas and create map charts with the USV data
  AUTHOR: Alexandre Amory (amamory@gmail.com)
  tested with python 2.7.X, installed by condas. required to install conda. does not have any depedency with ROS.
  DEPEDENCIES: 
-	 - conda install anaconda-clean
-	 - conda install -c conda-forge folium
-	 - conda install geopandas
-	 - conda install folium
-	 - conda install matplotlib
-	 - conda install flask   -- recomended, but not required
-	 - conda install jupyter -- recomended, but not required
+     - conda install anaconda-clean
+     - conda install -c conda-forge folium
+     - conda install geopandas
+     - conda install folium
+     - conda install matplotlib
+     - conda install flask   -- recomended, but not required
+     - conda install jupyter -- recomended, but not required
 
  TODO: geopandas/shapely and rosbag_pandas are not reeealy necessary. it might be interesting to have a rosbag2pandas.py script
 """
@@ -48,27 +49,41 @@ df = pd.DataFrame({
 # https://georgetsilva.github.io/posts/mapping-points-with-folium/
 # folium c colormap
 # https://github.com/collinreinking/longitude_latitude_dot_plots_in_python_with_folium/blob/master/MapsTutorials.ipynb
+# group markers
+# https://nbviewer.jupyter.org/github/python-visualization/folium/blob/master/examples/Plugins.ipynb
+# folium and matplot examples
+# 
 
 rosbag_filename = './data/furg-lake.bag'
 
 df = pandas.read_pickle(rosbag_filename+"-df.pkl")
 
-locations = df[['Latitude', 'Longitude']]
-locationlist = locations.values.tolist()
-len(locationlist)
-locationlist[7]
+df = df[['Latitude', 'Longitude','Temperature']]
+dflist = df.values.tolist()
 
-print (df.shape)
-print (df.info)
-print (df.head)
-print (df.Latitude.mean())
-print (df.Longitude.mean())
+dfLat = df[['Latitude']]
+dflistLat = dfLat.values.tolist()
 
-temp_data = df[['Temperature']]
-temp_data_lists = temp_data.values.tolist()
+dfLong = df[['Longitude']]
+dflistLong = dfLong.values.tolist()
+
+dfTemp = df[['Temperature']]
+dflistTemp = dfTemp.values.tolist()
+
+#len(locationlist)
+#locationlist[7]
+
+#print (df.shape)
+#print (df.info)
+#print (df.head)
+#print (df.Latitude.mean())
+#print (df.Longitude.mean())
+
+#temp_data = df[['Temperature']]
+#temp_data_lists = temp_data.values.tolist()
 
 """
-app = Flask(__name__)	
+app = Flask(__name__)
 
 
 @app.route('/')
@@ -82,17 +97,52 @@ if __name__ == '__main__':
     app.run(debug=True)
 """
 
-geomap = folium.Map([df.Latitude.mean(), df.Longitude.mean()], zoom_start=18)
+
+print (dfTemp.quantile(0.05)[0])
+print (dfTemp.quantile(0.95)[0])
+
+color_var = 'Temperature' #what variable will determine the color
+cmap = cm.LinearColormap(['blue', 'red'],
+                         vmin=dfTemp.quantile(0.05)[0], vmax=dfTemp.quantile(0.95)[0],
+                         #vmin=25, vmax=29,
+                         caption = color_var)
+
+geomap = folium.Map([dfLat.mean(), dfLong.mean()], zoom_start=18)
 
 
-for point in range(0, len(locationlist)):
-	#print (locationlist[point])
+#Add the color map legend to your map
+geomap.add_child(cmap)
+
+def plotDot(point):
+    '''input: series that contains a numeric named latitude and a numeric named longitude
+    this function creates a CircleMarker and adds it to your this_map'''
+    folium.CircleMarker(location=[point.Latitude, point.Longitude],
+                        fill_color=cmap(point[color_var]),
+                        radius=2,
+                        weight=0).add_to(geomap)
+'''
+for lat, lon, temp in zip(dflistLat,dflistLong,dflistTemp):
+	print (lat, lon, temp[0])
+	print (cmap(27))
+	#print (cmap(temp_data[color_var]))
 	#print (temp_data_lists[point])
 	#folium.Marker(locationlist[point], popup=temp_data_lists[point]).add_to(geomap)
-	folium.CircleMarker(locationlist[point], 
-		radius=1, #weight=0,#remove outline
-		popup=temp_data_lists[point]).add_to(geomap)
+	#folium.CircleMarker(locationlist[point], 
+	#	radius=1, #weight=0,#remove outline
+	#	fill_color=cmap(temp_data[color_var]),
+	#	popup=temp_data_lists[point]).add_to(geomap)
+	folium.CircleMarker(location=[lat[0], lon[0]],
+                        fill_color=cmap(temp[0]),
+                        radius=2,
+                        weight=0).add_to(geomap)
 	#folium.Marker(locationlist[point]).add_to(geomap)
+'''
+
+df.apply(plotDot, axis = 1)
+
+
+#Set the zoom to the maximum possible
+geomap.fit_bounds(geomap.get_bounds())
 
 geomap.save(os.path.join('results', 'folium-furg_0.html'))
 
