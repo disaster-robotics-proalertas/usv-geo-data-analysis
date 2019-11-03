@@ -52,23 +52,33 @@ df = pd.DataFrame({
 # group markers
 # https://nbviewer.jupyter.org/github/python-visualization/folium/blob/master/examples/Plugins.ipynb
 # folium and matplot examples
-# 
+# http://cican17.com/data-visualization-with-python/
+# folium lines
+# https://deparkes.co.uk/2016/06/03/plot-lines-in-folium/
+
 
 rosbag_filename = './data/furg-lake.bag'
 
 df = pandas.read_pickle(rosbag_filename+"-df.pkl")
 
-df = df[['Latitude', 'Longitude','Temperature']]
+df = df[['Latitude', 'Longitude','Temperature', 'pH']]
 dflist = df.values.tolist()
+#dflist = df["Latitude"].tolist()
 
 dfLat = df[['Latitude']]
-dflistLat = dfLat.values.tolist()
+dflistLat = df["Latitude"].tolist()
 
 dfLong = df[['Longitude']]
-dflistLong = dfLong.values.tolist()
+dflistLong = df['Longitude'].tolist()
 
 dfTemp = df[['Temperature']]
-dflistTemp = dfTemp.values.tolist()
+dflistTemp = df['Temperature'].tolist()
+
+dfpH = df[['pH']]
+dflistpH = df['pH'].tolist()
+
+
+#print (dfpH.values)
 
 #len(locationlist)
 #locationlist[7]
@@ -107,7 +117,39 @@ cmap = cm.LinearColormap(['blue', 'red'],
                          #vmin=25, vmax=29,
                          caption = color_var)
 
+#creating the map
 geomap = folium.Map([dfLat.mean(), dfLong.mean()], zoom_start=18)
+
+
+# creating the data layers
+# https://github.com/python-visualization/folium/blob/master/examples/FeatureGroup.ipynb
+#fg = folium.FeatureGroup
+fg = folium.FeatureGroup(name='Some icons')
+folium.Marker(location=[dfLat.mean(), dfLong.mean()],
+       popup='Mt. Hood Meadows').add_to(fg)
+
+folium.Marker(location=[dfLat.mean(), dfLong.mean()],
+       popup='Timberline Lodge').add_to(fg)
+
+fg.add_to(geomap)
+folium.LayerControl().add_to(geomap)
+'''
+g1 = folium.plugins.FeatureGroupSubGroup(fg, 'Temperature')
+g2 = folium.plugins.FeatureGroupSubGroup(fg, 'pH')
+geomap.add_child(fg)
+geomap.add_child(g1)
+geomap.add_child(g2)
+
+    >>> fg = folium.FeatureGroup()                          # Main group
+    >>> g1 = folium.plugins.FeatureGroupSubGroup(fg, 'g1')  # First subgroup of fg
+    >>> g2 = folium.plugins.FeatureGroupSubGroup(fg, 'g2')  # Second subgroup of fg
+    >>> m.add_child(fg)
+    >>> m.add_child(g1)
+    >>> m.add_child(g2)
+    >>> g1.add_child(folium.Marker([0,0]))
+    >>> g2.add_child(folium.Marker([0,1]))
+    >>> folium.LayerControl().add_to(m)
+'''
 
 
 #Add the color map legend to your map
@@ -122,20 +164,20 @@ def plotDot(point):
                         weight=0).add_to(geomap)
 '''
 for lat, lon, temp in zip(dflistLat,dflistLong,dflistTemp):
-	print (lat, lon, temp[0])
-	print (cmap(27))
-	#print (cmap(temp_data[color_var]))
-	#print (temp_data_lists[point])
-	#folium.Marker(locationlist[point], popup=temp_data_lists[point]).add_to(geomap)
-	#folium.CircleMarker(locationlist[point], 
-	#	radius=1, #weight=0,#remove outline
-	#	fill_color=cmap(temp_data[color_var]),
-	#	popup=temp_data_lists[point]).add_to(geomap)
-	folium.CircleMarker(location=[lat[0], lon[0]],
+    print (lat, lon, temp[0])
+    print (cmap(27))
+    #print (cmap(temp_data[color_var]))
+    #print (temp_data_lists[point])
+    #folium.Marker(locationlist[point], popup=temp_data_lists[point]).add_to(geomap)
+    #folium.CircleMarker(locationlist[point], 
+    #   radius=1, #weight=0,#remove outline
+    #   fill_color=cmap(temp_data[color_var]),
+    #   popup=temp_data_lists[point]).add_to(geomap)
+    folium.CircleMarker(location=[lat[0], lon[0]],
                         fill_color=cmap(temp[0]),
                         radius=2,
                         weight=0).add_to(geomap)
-	#folium.Marker(locationlist[point]).add_to(geomap)
+    #folium.Marker(locationlist[point]).add_to(geomap)
 '''
 
 df.apply(plotDot, axis = 1)
