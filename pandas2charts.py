@@ -63,82 +63,86 @@ rosbag_filename = './data/furg-lake.bag'
 df = pandas.read_pickle(rosbag_filename+"-df.pkl")
 
 # check if the expected data is in the file
-expected_columns = ['Latitude', 'Longitude', 'Altitude', 'Condutivity', 'DissolvedOxygen', 'RedoxPotential', 'Temperature', 'pH']
+expected_columns = ['Latitude', 'Longitude', 'Condutivity', 'DissolvedOxygen', 'RedoxPotential', 'Temperature', 'pH']
 for col in expected_columns:
 	if col not in df.columns:
 		print ("ERROR: column " + col + " not found in " + rosbag_filename +"-df.pkl")
 		sys.exit(1)
+# use only the expected columns
+df = df[expected_columns]
 
-df = df[['Latitude', 'Longitude','Condutivity', 'DissolvedOxygen', 'RedoxPotential', 'Temperature', 'pH']]
-
-color_var = 'Temperature' #what variable will determine the color
-cmap_Temp = cm.LinearColormap(['blue', 'red'],
-                         vmin=df[['Temperature']].quantile(0.05)[0], vmax=df[['Temperature']].quantile(0.95)[0],
-                         caption = 'Temperature')
-
-color_var = 'pH' #what variable will determine the color
-cmap_pH = cm.LinearColormap(['blue', 'red'],
-                         vmin=df[['pH']].quantile(0.05)[0], vmax=df[['pH']].quantile(0.95)[0],
-                         caption = 'pH')
+expected_columns.remove('Latitude')
+expected_columns.remove('Longitude')
 
 #creating the map
-geomap = folium.Map([df[['Latitude']].mean(), df[['Latitude']].mean()], zoom_start=18)
+geomap = folium.Map([df[['Latitude']].mean(), df[['Longitude']].mean()], zoom_start=18)
 
+# a list of FeatureGroup/Layers and Colormaps
+fg = []
+cmap = []
+cnt = 0
 
-# creating the data layers
-# https://github.com/python-visualization/folium/blob/master/examples/FeatureGroup.ipynb
-fgTemp = folium.FeatureGroup(name='Temperature')
-fgpH = folium.FeatureGroup(name='pH')
+#for each layer
+for data_var in expected_columns:
+	#data_var = 'Temperature' #what variable will determine the color
+	cmap.append( cm.LinearColormap(['blue', 'red'],
+	                         vmin=df[[data_var]].quantile(0.05)[0], vmax=df[[data_var]].quantile(0.95)[0],
+	                         caption = data_var)
+				)
 
-#folium.Marker(location=[df[['Latitude']].mean(), df[['Longitude']].mean()],
-#       popup='Temp').add_to(fgTemp)
+	# creating the data layers
+	# https://github.com/python-visualization/folium/blob/master/examples/FeatureGroup.ipynb
+	fg.append( folium.FeatureGroup(name=data_var) )
 
-#folium.Marker(location=[df[['Latitude']].mean(), df[['Longitude']].mean()],
-#       popup='pH').add_to(fgpH)
-
-fgTemp.add_to(geomap)
-fgpH.add_to(geomap)
+	fg[cnt].add_to(geomap)
+	geomap.add_child(cmap[cnt])
+	cnt = cnt+1
 folium.LayerControl().add_to(geomap)
-'''
-g1 = folium.plugins.FeatureGroupSubGroup(fg, 'Temperature')
-g2 = folium.plugins.FeatureGroupSubGroup(fg, 'pH')
-geomap.add_child(fg)
-geomap.add_child(g1)
-geomap.add_child(g2)
-
-    >>> fg = folium.FeatureGroup()                          # Main group
-    >>> g1 = folium.plugins.FeatureGroupSubGroup(fg, 'g1')  # First subgroup of fg
-    >>> g2 = folium.plugins.FeatureGroupSubGroup(fg, 'g2')  # Second subgroup of fg
-    >>> m.add_child(fg)
-    >>> m.add_child(g1)
-    >>> m.add_child(g2)
-    >>> g1.add_child(folium.Marker([0,0]))
-    >>> g2.add_child(folium.Marker([0,1]))
-    >>> folium.LayerControl().add_to(m)
-'''
-
-
-#Add the color map legend to your map
-geomap.add_child(cmap_Temp)
-geomap.add_child(cmap_pH)
-
 
 def plotDot(point):
     '''input: series that contains a numeric named latitude and a numeric named longitude
     this function creates a CircleMarker and adds it to your this_map'''
+    cnt = 0
+    # create the points to each data and associate with the FeatureGroup and Colormaps
+    for data_var in expected_columns:
+	    folium.CircleMarker(location=[point.Latitude, point.Longitude],
+                    fill_color=cmap[cnt](point[data_var]),
+                    radius=2,
+                    popup= "%.2f" % point[data_var],
+                    weight=0).add_to(fg[cnt])
+	    cnt =  cnt +1
+'''
+    #add points to the Condutivity Layer
+    folium.CircleMarker(location=[point.Latitude, point.Longitude],
+                        fill_color=cmap[0](point['Condutivity']),
+                        radius=2,
+                        popup= "%.2f" % point['Condutivity'],
+                        weight=0).add_to(fg[0])
+    #add points to the DissolvedOxygen Layer
+    folium.CircleMarker(location=[point.Latitude, point.Longitude],
+                        fill_color=cmap[1](point['DissolvedOxygen']),
+                        radius=2,
+                        popup= "%.2f" % point['DissolvedOxygen'],
+                        weight=0).add_to(fg[1])
+    #add points to the RedoxPotential Layer
+    folium.CircleMarker(location=[point.Latitude, point.Longitude],
+                        fill_color=cmap[2](point['RedoxPotential']),
+                        radius=2,
+                        popup= "%.2f" % point['RedoxPotential'],
+                        weight=0).add_to(fg[2])                            
     #add points to the Temperature Layer
     folium.CircleMarker(location=[point.Latitude, point.Longitude],
-                        fill_color=cmap_Temp(point['Temperature']),
+                        fill_color=cmap[3](point['Temperature']),
                         radius=2,
                         popup= "%.2f" % point['Temperature'],
-                        weight=0).add_to(fgTemp)
+                        weight=0).add_to(fg[3])
     # add points to the pH Layer
     folium.CircleMarker(location=[point.Latitude, point.Longitude],
-                        fill_color=cmap_pH(point['pH']),
+                        fill_color=cmap[4](point['pH']),
                         radius=2,
                         popup= "%.2f" % point['pH'],
-                        weight=0).add_to(fgpH)
-
+                        weight=0).add_to(fg[4])
+'''
 
 df.apply(plotDot, axis = 1)
 
