@@ -64,7 +64,7 @@ df = pandas.read_pickle(rosbag_filename+"-df.pkl")
 df = df[['Latitude', 'Longitude','Temperature', 'pH']]
 dflist = df.values.tolist()
 #dflist = df["Latitude"].tolist()
-
+'''
 dfLat = df[['Latitude']]
 dflistLat = df["Latitude"].tolist()
 
@@ -76,62 +76,35 @@ dflistTemp = df['Temperature'].tolist()
 
 dfpH = df[['pH']]
 dflistpH = df['pH'].tolist()
-
-
-#print (dfpH.values)
-
-#len(locationlist)
-#locationlist[7]
-
-#print (df.shape)
-#print (df.info)
-#print (df.head)
-#print (df.Latitude.mean())
-#print (df.Longitude.mean())
-
-#temp_data = df[['Temperature']]
-#temp_data_lists = temp_data.values.tolist()
-
-"""
-app = Flask(__name__)
-
-
-@app.route('/')
-def index():
-    start_coords = (df.Latitude.mean(), df.Longitude.mean())
-    folium_map = folium.Map(location=start_coords, zoom_start=14)
-    return folium_map._repr_html_()
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
-"""
-
-
-print (dfTemp.quantile(0.05)[0])
-print (dfTemp.quantile(0.95)[0])
+'''
 
 color_var = 'Temperature' #what variable will determine the color
-cmap = cm.LinearColormap(['blue', 'red'],
-                         vmin=dfTemp.quantile(0.05)[0], vmax=dfTemp.quantile(0.95)[0],
-                         #vmin=25, vmax=29,
-                         caption = color_var)
+cmap_Temp = cm.LinearColormap(['blue', 'red'],
+                         vmin=df[['Temperature']].quantile(0.05)[0], vmax=df[['Temperature']].quantile(0.95)[0],
+                         caption = 'Temperature')
+
+color_var = 'pH' #what variable will determine the color
+cmap_pH = cm.LinearColormap(['blue', 'red'],
+                         vmin=df[['pH']].quantile(0.05)[0], vmax=df[['pH']].quantile(0.95)[0],
+                         caption = 'pH')
 
 #creating the map
-geomap = folium.Map([dfLat.mean(), dfLong.mean()], zoom_start=18)
+geomap = folium.Map([df[['Latitude']].mean(), df[['Latitude']].mean()], zoom_start=18)
 
 
 # creating the data layers
 # https://github.com/python-visualization/folium/blob/master/examples/FeatureGroup.ipynb
-#fg = folium.FeatureGroup
 fgTemp = folium.FeatureGroup(name='Temperature')
 fgpH = folium.FeatureGroup(name='pH')
 
-folium.Marker(location=[dfLat.mean(), dfLong.mean()],
-       popup='Mt. Hood Meadows').add_to(fgTemp)
+folium.Marker(location=[df[['Latitude']].mean(), df[['Longitude']].mean()],
+       popup='Temp').add_to(fgTemp)
 
-folium.Marker(location=[dfLat.mean(), dfLong.mean()],
-       popup='Timberline Lodge').add_to(fgpH)
+folium.Marker(location=[df[['Latitude']].mean(), df[['Longitude']].mean()],
+       popup='pH').add_to(fgpH)
+
+#cmap_pH.add_to(fgpH)
+#cmap_Temp.add_to(fgTemp)
 
 fgTemp.add_to(geomap)
 fgpH.add_to(geomap)
@@ -156,16 +129,26 @@ geomap.add_child(g2)
 
 
 #Add the color map legend to your map
-geomap.add_child(cmap)
+geomap.add_child(cmap_Temp)
+geomap.add_child(cmap_pH)
+
 
 def plotDot(point):
     '''input: series that contains a numeric named latitude and a numeric named longitude
     this function creates a CircleMarker and adds it to your this_map'''
+    #add points to the Temperature Layer
     folium.CircleMarker(location=[point.Latitude, point.Longitude],
-                        fill_color=cmap(point[color_var]),
+                        fill_color=cmap_Temp(point['Temperature']),
                         radius=2,
-                        popup= "%.2f" % point[color_var],
-                        weight=0).add_to(geomap)
+                        popup= "%.2f" % point['Temperature'],
+                        weight=0).add_to(fgTemp)
+    # add points to the pH Layer
+    folium.CircleMarker(location=[point.Latitude, point.Longitude],
+                        fill_color=cmap_pH(point['pH']),
+                        radius=2,
+                        popup= "%.2f" % point['pH'],
+                        weight=0).add_to(fgpH)
+
 '''
 for lat, lon, temp in zip(dflistLat,dflistLong,dflistTemp):
     print (lat, lon, temp[0])
