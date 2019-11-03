@@ -68,7 +68,7 @@ temp_data = df[['Temperature']]
 temp_data_lists = temp_data.values.tolist()
 
 """
-app = Flask(__name__)
+app = Flask(__name__)	
 
 
 @app.route('/')
