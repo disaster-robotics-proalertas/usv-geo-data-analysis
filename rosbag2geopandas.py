@@ -73,7 +73,7 @@ for bagFile in listOfBagFiles:
 
 	# save alternative formats. uncomment if you want the intermeriate data
 	#df.to_csv(rosbag_filename+".csv")
-	#df.to_pickle(rosbag_filename+".pkl")
+	#	df.to_pickle(rosbag_filename+".pkl")
 	#df = pandas.read_pickle(rosbag_filename+".pkl")
 
 	print "###############################"
