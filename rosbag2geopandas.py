@@ -48,8 +48,8 @@ else:
 	sys.exit(1)
 
 # for testing only
-listOfBagFiles = ['./data/furg-lake.bag']
-numberOfFiles = 1
+#listOfBagFiles = ['./data/furg-lake.bag']
+#numberOfFiles = 1
 
 
 count = 0

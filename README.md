@@ -110,7 +110,6 @@ max     311.299988        28.580000      191.000000    28.268999   11.003000
 
 * Make this flow online, allowing to read the data in the map while the USV is navigating. Step 2 can generate data into a socket channel instead of a file.
 * Make it read multiples bags at once and merge the Pandas files generated in Step 2 to plot data from all bags in the same chart
-
-
+* Test the flow with depth data
 
 Author: Alexandre Amory
