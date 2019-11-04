@@ -28,8 +28,8 @@ import time
 #verify correct input arguments: 1 or 2
 if (len(sys.argv) > 2):
 	print "invalid number of arguments:   " + str(len(sys.argv))
-	print "should be 2: 'bag2csv.py' and 'bagName'"
-	print "or just 1  : 'bag2csv.py'"
+	print "should be 2: 'rosbag2geopandas.py' and 'bagName'"
+	print "or just 1  : 'rosbag2geopandas.py'"
 	sys.exit(1)
 elif (len(sys.argv) == 2):
 	listOfBagFiles = [sys.argv[1]]
@@ -53,9 +53,16 @@ else:
 
 
 count = 0
-for bagFile in listOfBagFiles:
-	rosbag_filename = bagFile
-	rosbag_filesize = os.path.getsize(rosbag_filename)/float(1024*1024)
+for currentFile in listOfBagFiles:
+	# split filename in path, filename, extension
+	filename, file_extension = os.path.splitext(currentFile)
+	filepath, filename = os.path.split(filename)
+
+	if (file_extension != '.bag'):
+		print('ERROR: expecting a ROS bag file with extension .bag')
+		sys.exit(1)
+
+	rosbag_filesize = os.path.getsize(currentFile)/float(1024*1024)
 
 	print "Reading rosbag file of " + "%.2f" % rosbag_filesize + " MBytes"
 
@@ -69,12 +76,10 @@ for bagFile in listOfBagFiles:
 	# header/stamp/secs has the timestamp in order
 	selected_columns = ['/mavros/global_position/global/header/stamp/secs', '/mavros/global_position/global/latitude', '/mavros/global_position/global/longitude', '/mavros/global_position/global/altitude', '/atlas/raw/Conductivity/ec', '/atlas/raw/DissolvedOxygen/do', '/atlas/raw/RedoxPotential/orp', '/atlas/raw/Temperature/celsius', '/atlas/raw/pH/pH', '/atlas/raw/Conductivity/header/stamp/secs', '/atlas/raw/DissolvedOxygen/header/stamp/secs', '/atlas/raw/RedoxPotential/header/stamp/secs', '/atlas/raw/Temperature/header/stamp/secs', '/atlas/raw/pH/header/stamp/secs']
 
-	df = rosbag_pandas.bag_to_dataframe(rosbag_filename)
-
-	# save alternative formats. uncomment if you want the intermeriate data
-	#df.to_csv(rosbag_filename+".csv")
-	#	df.to_pickle(rosbag_filename+".pkl")
-	#df = pandas.read_pickle(rosbag_filename+".pkl")
+	df = rosbag_pandas.bag_to_dataframe(currentFile)
+	#print (df.shape)
+	#print (df.columns)
+	#df.to_csv(os.path.join(filepath, filename+"-df3.csv"))
 
 	print "###############################"
 	print "Original table size (lines x cols): " + str(df.shape[0]) + " x " + str(df.shape[1])
@@ -90,6 +95,9 @@ for bagFile in listOfBagFiles:
 	if len(df.columns) != len(selected_columns):
 		print "ERROR: missing expected topics"
 		sys.exit(1)
+	#df.to_csv(os.path.join(filepath, filename+"-df2.csv")
+	#print (df.shape)
+	#print (df.columns)
 
 	# dropping NaN data for every sensor data
 	df_ec = df[['/atlas/raw/Conductivity/ec','/atlas/raw/Conductivity/header/stamp/secs']]
@@ -120,6 +128,9 @@ for bagFile in listOfBagFiles:
 		df_orp.shape[0] != water_samples or df_temp.shape[0] != water_samples or \
 		df_ph.shape[0] != water_samples:
 		print "WARNING: diferent # of samples for each water parameter"
+		print 'EC:', df_ec.shape[0], 'DO:', df_do.shape[0], 'ORP:', df_orp.shape[0], 'Temp:', df_temp.shape[0], 'pH:', df_ph.shape[0]
+		num_samples = [df_ec.shape[0], df_do.shape[0], df_orp.shape[0], df_temp.shape[0], df_ph.shape[0]]
+		water_samples = min(num_samples)
 
 	csv_list =[]
 	# build the output CSV file, row by row
@@ -127,18 +138,27 @@ for bagFile in listOfBagFiles:
 		aux = [tuple(df_ec.iloc[i]),tuple(df_do.iloc[i]),tuple(df_orp.iloc[i]),tuple(df_temp.iloc[i]),tuple(df_ph.iloc[i]),]
 		# extracts only the water sampling data, leaving the sample time
 		water_data = [ seq[0] for seq in aux ]
+		#print (water_data)
 		# get the min and max time of this list of tuples. it correspond to get the time of the 1s and last samples
 		min_time = min(aux, key = lambda t: t[1])[1]
 		max_time = max(aux, key = lambda t: t[1])[1]
+		#print (min_time, max_time)
 		# get the gps readings related to the time interval of the water samples
 		interval_gps = df_gps[df_gps['/mavros/global_position/global/header/stamp/secs'].between(min_time,max_time)]
+		if interval_gps.shape[0] == 0:
+			print ('ERROR: no GPS data was found between the atlas timestamps')
+			sys.exit(1)
 		# get the median of the values. median is selected to avoid outlier/glitches in gps data
+		#print (interval_gps.shape)
+		print (interval_gps.head)
 		median_time  = interval_gps['/mavros/global_position/global/header/stamp/secs'].median()
 		median_latitude  = interval_gps['/mavros/global_position/global/latitude'].median()
 		median_longitude = interval_gps['/mavros/global_position/global/longitude'].median()
 		median_altitude  = interval_gps['/mavros/global_position/global/altitude'].median()
 		# now, a new row is ready to be saved
+		#print ([median_time, median_latitude, median_longitude, median_altitude])
 		csv_row = [median_time, median_latitude, median_longitude, median_altitude] + water_data
+		#print (csv_row)
 		csv_list.append(csv_row)
 
 	column_label = ['Time', 'Latitude', 'Longitude', 'Altitude', 'Condutivity', 'DissolvedOxygen', 'RedoxPotential', 'Temperature', 'pH']
@@ -150,8 +170,11 @@ for bagFile in listOfBagFiles:
 	print "Filtered table size (lines x cols): " + str(final_df.shape[0]) + " x " + str(final_df.shape[1])
 	print "###############################"
 	print "  saving CSV and Pickle data formats ... "
-	final_df.to_csv(rosbag_filename+"-df.csv")
-	final_df.to_pickle(rosbag_filename+"-df.pkl")
+	#print (final_df.shape)
+	#print (final_df.columns)
+	#print (final_df.head)
+	final_df.to_csv(os.path.join(filepath, filename+"-df.csv"))
+	final_df.to_pickle(os.path.join(filepath, filename+"-df.pkl"))
 
 	# converting to geopandas datafram
 	geometry = [Point(xy) for xy in zip(final_df.Longitude, final_df.Latitude)]
@@ -160,6 +183,6 @@ for bagFile in listOfBagFiles:
 	final_gdf = gpd.GeoDataFrame(final_df, crs=crs, geometry=geometry)
 
 	print "  saving Geopandas Pickle data format ... "
-	final_gdf.to_pickle(rosbag_filename+"-gdf.pkl")
+	final_gdf.to_pickle(os.path.join(filepath, filename+"-gdf.pkl"))
 
 print "fim"
