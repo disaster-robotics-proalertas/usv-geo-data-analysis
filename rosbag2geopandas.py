@@ -133,6 +133,7 @@ for currentFile in listOfBagFiles:
 		water_samples = min(num_samples)
 
 	csv_list =[]
+	interval_gps = []
 	# build the output CSV file, row by row
 	for i in range(water_samples):
 		aux = [tuple(df_ec.iloc[i]),tuple(df_do.iloc[i]),tuple(df_orp.iloc[i]),tuple(df_temp.iloc[i]),tuple(df_ph.iloc[i]),]
@@ -144,10 +145,16 @@ for currentFile in listOfBagFiles:
 		max_time = max(aux, key = lambda t: t[1])[1]
 		#print (min_time, max_time)
 		# get the gps readings related to the time interval of the water samples
-		interval_gps = df_gps[df_gps['/mavros/global_position/global/header/stamp/secs'].between(min_time,max_time)]
-		if interval_gps.shape[0] == 0:
-			print ('ERROR: no GPS data was found between the atlas timestamps')
-			sys.exit(1)
+		temp_gps = df_gps[df_gps['/mavros/global_position/global/header/stamp/secs'].between(min_time,max_time)]
+		if temp_gps.shape[0] == 0:
+			print ('WARNING: no GPS data was found between the atlas timestamps')
+			#print (water_data)
+			#print (min_time, max_time)
+			#sys.exit(1)
+		else:
+			# updates the gps only if new data is found
+			interval_gps = temp_gps
+
 		# get the median of the values. median is selected to avoid outlier/glitches in gps data
 		#print (interval_gps.shape)
 		print (interval_gps.head)
